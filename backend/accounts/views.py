@@ -1,33 +1,41 @@
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
-from django.http import JsonResponse, HttpResponse
-from django.shortcuts import get_object_or_404
-from django.utils.timezone import now, timedelta
-from .models import CustomUser, UploadedFile, SharedFile
-from cryptography.fernet import Fernet
-import logging
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from cryptography.hazmat.backends import default_backend
-import json
-import os
-import os
-import Crypto
-from Crypto.Cipher import AES
-from Crypto.Random import get_random_bytes
-from django.http import JsonResponse
-from django.shortcuts import get_object_or_404
-from .models import UploadedFile, SharedFile
-from django.views.decorators.csrf import csrf_exempt
-from django.utils.decorators import method_decorator
-# Setup logging
+# Django imports
+from django.http import JsonResponse, HttpResponse  # For HTTP responses
+from django.shortcuts import get_object_or_404  # To fetch objects or return 404
+from django.utils.timezone import now, timedelta, timezone  # For working with time
+from django.views.decorators.csrf import csrf_exempt  # For CSRF exemption
+from django.utils.decorators import method_decorator  # For method-based decorators
 
+# Django Rest Framework (DRF) imports
+from rest_framework.decorators import api_view, permission_classes  # For API views and permissions
+from rest_framework.permissions import IsAuthenticated  # To enforce authentication
+from rest_framework.response import Response  # For DRF responses
+
+# Cryptography-related imports
+from cryptography.fernet import Fernet  # For symmetric encryption
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes  # For low-level cryptographic operations
+from cryptography.hazmat.primitives import padding  # For data padding
+from cryptography.hazmat.backends import default_backend  # For cryptographic backend
+
+# PyCrypto imports
+from Crypto.Cipher import AES  # For AES encryption
+from Crypto.Random import get_random_bytes  # To generate random bytes
+
+# Standard library imports
+import os  # For file and environment operations
+import json  # For JSON operations
+from base64 import b64decode  # For Base64 decoding
+
+# Models (custom imports)
+from .models import CustomUser, UploadedFile, SharedFile  # For interacting with your models
+
+# Logging
+import logging  # For logging setup and usage
 
 logger = logging.getLogger(__name__)
 
 # Encryption key setup
 ENCRYPTION_KEY = Fernet.generate_key()
 cipher_suite = Fernet(ENCRYPTION_KEY)
-
 @api_view(['GET'])
 def get_user_details(request):
     """
@@ -36,25 +44,19 @@ def get_user_details(request):
     try:
         user = request.user
         if not user.is_authenticated:
+            logger.warning("Unauthorized access attempt to user details.")
             return JsonResponse({"error": "Unauthorized. Please log in."}, status=401)
 
-        user_data = {
+        # Build response data
+        response_data = {
             "username": user.username,
-            "role": user.role,
-            "name": f"{user.first_name} {user.last_name}",
+            "role": getattr(user, "role", "guest"),
+            "name": f"{user.first_name} {user.last_name}" if user.first_name or user.last_name else "Anonymous",
         }
-        return JsonResponse(user_data, status=200)
+        return JsonResponse(response_data, status=200)
     except Exception as e:
         logger.error(f"Error fetching user details: {str(e)}")
         return JsonResponse({"error": "Failed to fetch user details."}, status=500)
-import os
-import json
-from base64 import b64decode
-from django.http import JsonResponse
-from rest_framework.decorators import api_view
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from cryptography.hazmat.backends import default_backend
-from .models import UploadedFile
 
 # Utility function to validate hexadecimal strings
 def is_hex(s):
@@ -63,26 +65,11 @@ def is_hex(s):
         return True
     except ValueError:
         return False
-import os
-import json
-from base64 import b64decode
-from django.http import JsonResponse
-from rest_framework.decorators import api_view
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from .models import UploadedFile
-
-
-from django.utils import timezone
-from django.http import JsonResponse
-from rest_framework.decorators import api_view
-from base64 import b64decode
-import os
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from cryptography.hazmat.primitives import padding
-import json
 
 @api_view(['POST'])
 def upload_file(request):
+    '''
+    Uploads the file to the server'''
     try:
         data = request.data  # Use request.data instead of json.loads(request.body)
         file_name = data.get('file_name')
@@ -109,7 +96,11 @@ def upload_file(request):
         except Exception as e:
             return JsonResponse({"error": f"Decryption failed: {str(e)}"}, status=500)
 
-        file_path = os.path.join('media', 'decrypted_files', file_name)
+        file_path = os.path.join(
+                'media',
+                'decrypted_files',
+                f"{file_name}{now().strftime('%Y%m%d%H%M%S')}{request.user.username}"
+            )
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
 
         with open(file_path, "wb") as file:
@@ -117,7 +108,7 @@ def upload_file(request):
 
         # Save the file metadata to the database
         uploaded_file = UploadedFile.objects.create(
-            user=request.user,  # Ensure this is a valid `CustomUser` instance
+            user=request.user, 
             file_name=file_name,
             file=file_path,  # File field to store the decrypted file's path
             encrypted=False,  # Set encrypted to False since it’s now decrypted
@@ -127,18 +118,6 @@ def upload_file(request):
         return JsonResponse({"message": "File uploaded and decrypted successfully!"}, status=200)
     except Exception as e:
         return JsonResponse({"error": f'An unexpected error occurred: {str(e)}'}, status=500)
-# views.py
-from django.http import JsonResponse
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
-from django.utils import timezone
-from django.db.models import Q
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from cryptography.hazmat.primitives import padding
-from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives import serialization
-import os
-import base64
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -147,28 +126,32 @@ def access_shared_file(request, encrypted_file_id):
     Endpoint to retrieve and encrypt a file for download.
     """
     try:
-        # Assuming the encrypted_file_id is provided as a base64-encoded string.
+        # Decrypt the file ID
         try:
-            # Decode and convert the file ID
-            file_id_bytes = base64.urlsafe_b64decode(encrypted_file_id + '==')
-            file_id = int.from_bytes(file_id_bytes, 'big')
-        except Exception:
+            file_id = int(cipher_suite.decrypt(encrypted_file_id.encode()).decode())
+            
+        except Exception as e:
             return JsonResponse({"error": "Invalid or malformed file ID."}, status=400)
 
-        # Fetch the shared file and permissions
-        shared_file = SharedFile.objects.filter(file_id=file_id).filter(
-            Q(owner=request.user) |
-            Q(shared_with=request.user, download_permission=True, expiration_time__gte=timezone.now())
-        ).first()
+        # Check if the file is shared with the user with download permission
+        if SharedFile.objects.filter(
+            file__id=file_id,
+            shared_with=request.user,
+            download_permission=True,
+            expiration_time__gte=timezone.now()
+        ).exists():
+            uploaded_file = UploadedFile.objects.get(id=file_id)
+            uploaded_file_path = uploaded_file.file.path
+            uploaded_file_name = uploaded_file.file_name
 
-        if not shared_file:
+        # Check if the user is the owner of the file
+        elif UploadedFile.objects.filter(id=file_id, user=request.user).exists():
+            uploaded_file = UploadedFile.objects.get(id=file_id, user=request.user)
+            uploaded_file_path = uploaded_file.file.path
+            uploaded_file_name = uploaded_file.file_name
+
+        else:
             return JsonResponse({"error": "You don't have permission to access this file."}, status=403)
-
-        uploaded_file = shared_file.file  # Assuming `file` is a ForeignKey to `UploadedFile`
-
-        # Get file path and file name
-        uploaded_file_path = uploaded_file.file.path  # Use the `path` attribute
-        uploaded_file_name = uploaded_file.file_name
 
         # Read the file content
         with open(uploaded_file_path, 'rb') as f:
@@ -200,6 +183,9 @@ def access_shared_file(request, encrypted_file_id):
         })
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
+
+
+
 
 @api_view(['GET'])
 def get_all_uploaded_files(request):
@@ -337,42 +323,70 @@ def add_shared_user(request, encrypted_file_id):
 @api_view(['GET'])
 def view_file(request, encrypted_file_id):
     """
-    View or download a file based on permissions.
+    Endpoint to retrieve and decrypt a file for viewing.
     """
+
     try:
         # Decrypt the file ID
         try:
             file_id = int(cipher_suite.decrypt(encrypted_file_id.encode()).decode())
+            
         except Exception as e:
             return JsonResponse({"error": "Invalid or malformed file ID."}, status=400)
 
-        # Fetch the shared file record
-        shared_file = get_object_or_404(SharedFile, file_id=file_id, shared_with=request.user)
+        # Check if the file is shared with the user with view permission
+        if SharedFile.objects.filter(
+            file__id=file_id,
+            shared_with=request.user,
+            view_permission=True,
+            expiration_time__gte=timezone.now()
+        ).exists():
+            uploaded_file = UploadedFile.objects.get(id=file_id)
+            uploaded_file_path = uploaded_file.file.path
+            uploaded_file_name = uploaded_file.file_name
 
-        # Check if the user has view or download permissions
-        if not shared_file.view_permission and not shared_file.download_permission:
-            return JsonResponse({"error": "You do not have permission to access this file."}, status=403)
+        # Check if the user is the owner of the file
+        elif UploadedFile.objects.filter(id=file_id, user=request.user).exists():
+            uploaded_file = UploadedFile.objects.get(id=file_id, user=request.user)
+            uploaded_file_path = uploaded_file.file.path
+            uploaded_file_name = uploaded_file.file_name
+
+        else:
+            return JsonResponse({"error": "You don't have permission to access this file."}, status=403)
 
         # Read the file content
-        file_obj = shared_file.file
-        file_content = file_obj.file.read()  # Reading file content
+        with open(uploaded_file_path, 'rb') as f:
+            file_content = f.read()
 
-        # If the user has view_permission, return the content for rendering
-        if shared_file.view_permission:
-            return JsonResponse({"file_content": file_content.decode('utf-8')}, status=200)
+        # Generate AES key and IV
+        aes_key = os.urandom(32)  # 256-bit AES key
+        aes_iv = os.urandom(16)   # 128-bit IV
 
-        # If the user has download_permission, return the file for download
-        if shared_file.download_permission:
-            response = HttpResponse(file_content, content_type='application/octet-stream')
-            response['Content-Disposition'] = f'attachment; filename="{file_obj.file_name}"'
-            return response
+        # Encrypt the file content using AES in CBC mode with PKCS7 padding
+        padder = padding.PKCS7(algorithms.AES.block_size).padder()
+        padded_file_content = padder.update(file_content) + padder.finalize()
 
-        # Default fallback (should not reach here due to earlier checks)
-        return JsonResponse({"error": "Invalid access request."}, status=400)
+        cipher = Cipher(algorithms.AES(aes_key), modes.CBC(aes_iv), backend=default_backend())
+        encryptor = cipher.encryptor()
+        encrypted_content = encryptor.update(padded_file_content) + encryptor.finalize()
 
+        # Encode the encrypted content, AES key, and IV in Base64
+        encrypted_content_b64 = base64.b64encode(encrypted_content).decode('utf-8')
+        aes_key_b64 = base64.b64encode(aes_key).decode('utf-8')
+        aes_iv_b64 = base64.b64encode(aes_iv).decode('utf-8')
+
+        # Return the encrypted content, key, IV, and file name
+        return JsonResponse({
+            "encrypted_content": encrypted_content_b64,
+            "aes_key": aes_key_b64,
+            "aes_iv": aes_iv_b64,
+            "file_name": uploaded_file_name,
+        })
     except Exception as e:
-        logger.error(f"Error accessing file: {e}")
-        return JsonResponse({"error": "Failed to access file."}, status=500)
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+  
 @api_view(['GET'])
 def get_shared_users(request, encrypted_file_id):
     try:
