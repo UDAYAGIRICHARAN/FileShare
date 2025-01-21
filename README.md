@@ -99,6 +99,14 @@ For detailed steps and further configuration options, refer to the official Dock
 ![WhatsApp Image 2025-01-22 at 01 03 05_dc0a27e7](https://github.com/user-attachments/assets/66a93df1-6615-4913-b465-754ab444b503)
 ![WhatsApp Image 2025-01-22 at 01 03 39_1d20df29](https://github.com/user-attachments/assets/5dbd6de9-e297-4ca8-a1d1-8254b5cae715)
 ![image](https://github.com/user-attachments/assets/f96e82a7-9e6a-485c-a068-cce32e25b0a0)
+![image](https://github.com/user-attachments/assets/30fbeb26-89f2-4bb2-8b9e-592786b59696)
+![image](https://github.com/user-attachments/assets/e9fa3377-3a54-46e3-9b08-e0a3329271ed)
+![image](https://github.com/user-attachments/assets/9f44f8aa-213f-4cba-b6f7-682aa1fd028b)
+![image](https://github.com/user-attachments/assets/feb49262-0446-4c3b-88a1-399392300632)
+![image](https://github.com/user-attachments/assets/112fb152-189a-45c3-b536-622c0fe49241)
+
+
+
 
 
 
