@@ -98,6 +98,8 @@ For detailed steps and further configuration options, refer to the official Dock
 ![WhatsApp Image 2025-01-22 at 01 02 49_8b1914a1](https://github.com/user-attachments/assets/5ee350e6-9b41-4d86-89e9-8b75041ac71a)
 ![WhatsApp Image 2025-01-22 at 01 03 05_dc0a27e7](https://github.com/user-attachments/assets/66a93df1-6615-4913-b465-754ab444b503)
 ![WhatsApp Image 2025-01-22 at 01 03 39_1d20df29](https://github.com/user-attachments/assets/5dbd6de9-e297-4ca8-a1d1-8254b5cae715)
+![image](https://github.com/user-attachments/assets/f96e82a7-9e6a-485c-a068-cce32e25b0a0)
+
 
 
 
