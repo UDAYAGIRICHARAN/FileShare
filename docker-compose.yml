@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  django:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: django
+    volumes:
+      - ./backend:/app
+    environment:
+      - DEBUG=1
+    ports:
+      - "8000:8000"  # Maps port 8000 of the host to port 8000 of the container
+    networks:
+      - app-network
+
+  react:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: react
+    stdin_open: true
+    tty: true
+    ports:
+      - "3000:3000"  # Maps port 3000 of the host to port 3000 of the container
+    networks:
+      - app-network
+
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    ports:
+      - "80:80"    # Exposes the React frontend on port 80
+      - "443:443"  # Exposes the Django backend on port 443 with SSL
+    volumes:
+      - ./nginx/nginx-django.conf:/etc/nginx/conf.d/django.conf
+      - ./nginx/nginx-react.conf:/etc/nginx/conf.d/react.conf
+      - ./certs:/etc/ssl/certs
+      - ./certs:/etc/ssl/private
+    depends_on:
+      - django
+      - react
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
