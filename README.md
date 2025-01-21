@@ -1,5 +1,5 @@
 
-# Django-React Application Deployment
+# File Share Application Deployment
 
 This guide covers the essential steps for deploying the Django-React application in a production environment using Docker and docker-compose.
 
