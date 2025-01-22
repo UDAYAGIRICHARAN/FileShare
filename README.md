@@ -99,6 +99,8 @@ For detailed steps and further configuration options, refer to the official Dock
 ![image](https://github.com/user-attachments/assets/736a5391-7fa0-46be-9acf-6319a0511801)
 ![image](https://github.com/user-attachments/assets/323111ff-2152-4141-a86b-5ebad542474c)
 ![image](https://github.com/user-attachments/assets/f96e82a7-9e6a-485c-a068-cce32e25b0a0)
+![image](https://github.com/user-attachments/assets/2ff107ae-b454-4781-8c4d-ddbd69bb3a7c)
+
 
 
 
