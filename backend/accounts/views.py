@@ -9,6 +9,8 @@ from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives import padding
 from Crypto.Cipher import AES
 from Crypto.Random import get_random_bytes
+from base64 import b64decode
+
 
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import get_object_or_404
