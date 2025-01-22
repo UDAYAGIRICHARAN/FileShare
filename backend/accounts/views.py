@@ -1,41 +1,34 @@
-# Django imports
-from django.http import JsonResponse, HttpResponse  # For HTTP responses
-from django.shortcuts import get_object_or_404  # To fetch objects or return 404
-from django.utils.timezone import now, timedelta, timezone  # For working with time
-from django.views.decorators.csrf import csrf_exempt  # For CSRF exemption
-from django.utils.decorators import method_decorator  # For method-based decorators
+import base64
+import json
+import logging
+import os
 
-# Django Rest Framework (DRF) imports
-from rest_framework.decorators import api_view, permission_classes  # For API views and permissions
-from rest_framework.permissions import IsAuthenticated  # To enforce authentication
-from rest_framework.response import Response  # For DRF responses
+from cryptography.fernet import Fernet
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.primitives import padding
+from Crypto.Cipher import AES
+from Crypto.Random import get_random_bytes
 
-# Cryptography-related imports
-from cryptography.fernet import Fernet  # For symmetric encryption
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes  # For low-level cryptographic operations
-from cryptography.hazmat.primitives import padding  # For data padding
-from cryptography.hazmat.backends import default_backend  # For cryptographic backend
+from django.http import JsonResponse, HttpResponse
+from django.shortcuts import get_object_or_404
+from django.utils import timezone
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
 
-# PyCrypto imports
-from Crypto.Cipher import AES  # For AES encryption
-from Crypto.Random import get_random_bytes  # To generate random bytes
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 
-# Standard library imports
-import os  # For file and environment operations
-import json  # For JSON operations
-from base64 import b64decode  # For Base64 decoding
-
-# Models (custom imports)
-from .models import CustomUser, UploadedFile, SharedFile  # For interacting with your models
-
-# Logging
-import logging  # For logging setup and usage
-
+from .models import CustomUser, UploadedFile, SharedFile
+from django.utils import timezone
+from datetime import timedelta
 logger = logging.getLogger(__name__)
 
 # Encryption key setup
 ENCRYPTION_KEY = Fernet.generate_key()
 cipher_suite = Fernet(ENCRYPTION_KEY)
+
 @api_view(['GET'])
 def get_user_details(request):
     """
@@ -44,19 +37,18 @@ def get_user_details(request):
     try:
         user = request.user
         if not user.is_authenticated:
-            logger.warning("Unauthorized access attempt to user details.")
             return JsonResponse({"error": "Unauthorized. Please log in."}, status=401)
 
-        # Build response data
-        response_data = {
+        user_data = {
             "username": user.username,
-            "role": getattr(user, "role", "guest"),
-            "name": f"{user.first_name} {user.last_name}" if user.first_name or user.last_name else "Anonymous",
+            "role": user.role,
+            "name": f"{user.first_name} {user.last_name}",
         }
-        return JsonResponse(response_data, status=200)
+        return JsonResponse(user_data, status=200)
     except Exception as e:
         logger.error(f"Error fetching user details: {str(e)}")
         return JsonResponse({"error": "Failed to fetch user details."}, status=500)
+
 
 # Utility function to validate hexadecimal strings
 def is_hex(s):
@@ -68,8 +60,9 @@ def is_hex(s):
 
 @api_view(['POST'])
 def upload_file(request):
-    '''
-    Uploads the file to the server'''
+    """
+    Uploads the file to the server
+    """
     try:
         data = request.data  # Use request.data instead of json.loads(request.body)
         file_name = data.get('file_name')
@@ -96,11 +89,7 @@ def upload_file(request):
         except Exception as e:
             return JsonResponse({"error": f"Decryption failed: {str(e)}"}, status=500)
 
-        file_path = os.path.join(
-                'media',
-                'decrypted_files',
-                f"{file_name}{now().strftime('%Y%m%d%H%M%S')}{request.user.username}"
-            )
+        file_path = os.path.join('media', 'decrypted_files', file_name)
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
 
         with open(file_path, "wb") as file:
@@ -108,7 +97,7 @@ def upload_file(request):
 
         # Save the file metadata to the database
         uploaded_file = UploadedFile.objects.create(
-            user=request.user, 
+            user=request.user,  # Ensure this is a valid `CustomUser` instance
             file_name=file_name,
             file=file_path,  # File field to store the decrypted file's path
             encrypted=False,  # Set encrypted to False since it’s now decrypted
@@ -118,6 +107,7 @@ def upload_file(request):
         return JsonResponse({"message": "File uploaded and decrypted successfully!"}, status=200)
     except Exception as e:
         return JsonResponse({"error": f'An unexpected error occurred: {str(e)}'}, status=500)
+
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -243,7 +233,7 @@ def share_file(request, encrypted_file_id):
 
         try:
             expiration_hours = int(expiration_hours)
-            expiration_time = now() + timedelta(hours=expiration_hours)
+            expiration_time = timezone.now()  + timedelta(hours=expiration_hours)
         except ValueError:
             return JsonResponse({"error": "Invalid 'expiration' value. Must be an integer."}, status=400)
 
@@ -303,7 +293,7 @@ def add_shared_user(request, encrypted_file_id):
         view_permission = request.data.get('view_permission', False) in ['true', 'True', True]
         download_permission = request.data.get('download_permission', False) in ['true', 'True', True]
         expiration_hours = int(request.data.get('expiration', 24))
-        expiration_time = now() + timedelta(hours=expiration_hours)
+        expiration_time = timezone.now()  + timedelta(hours=expiration_hours)
 
         SharedFile.objects.update_or_create(
             file=file,
@@ -389,6 +379,9 @@ def view_file(request, encrypted_file_id):
   
 @api_view(['GET'])
 def get_shared_users(request, encrypted_file_id):
+    """
+    Endpoint to retrieve shared users for a file.
+    """
     try:
         try:
             file_id = int(cipher_suite.decrypt(encrypted_file_id.encode()).decode())
