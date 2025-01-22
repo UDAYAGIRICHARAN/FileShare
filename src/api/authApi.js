@@ -8,6 +8,8 @@ export const registerUser = async (userData) => {
   return response.data; // { message: "...", or error }
 };
 
+
+
 // LOGIN
 export const loginUser = async (credentials) => {
   // credentials = { username, password }
@@ -21,6 +23,9 @@ export const logoutUser = async (refreshToken) => {
   const response = await axiosInstance.post('/api/logout/', { refresh: refreshToken });
   return response.data; // { message: "Logout successful" }
 };
+
+
+
 
 // GOOGLE OAUTH EXCHANGE
 // This call sends the Google ID token (the 'credential') to your Django backend

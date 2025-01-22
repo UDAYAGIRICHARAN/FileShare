@@ -22,6 +22,7 @@ function App() {
             </ProtectedRoute>
           }
         />
+        
         <Route
           path="/uploaded-files"
           element={
