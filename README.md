@@ -96,11 +96,13 @@ docker-compose up -d
 Set up monitoring and logging for your application to track its health and performance. Tools like Prometheus, Grafana, and ELK stack are recommended for Docker environments.
 
 For detailed steps and further configuration options, refer to the official Docker and Django documentation.
+![image](https://github.com/user-attachments/assets/85585db2-c2c2-4d11-b143-cbe129e32ff8)
+![image](https://github.com/user-attachments/assets/323111ff-2152-4141-a86b-5ebad542474c)
+![image](https://github.com/user-attachments/assets/736a5391-7fa0-46be-9acf-6319a0511801)
+
 ![WhatsApp Image 2025-01-22 at 01 02 49_8b1914a1](https://github.com/user-attachments/assets/5ee350e6-9b41-4d86-89e9-8b75041ac71a)
 ![WhatsApp Image 2025-01-22 at 01 03 05_dc0a27e7](https://github.com/user-attachments/assets/66a93df1-6615-4913-b465-754ab444b503)
 ![WhatsApp Image 2025-01-22 at 01 03 39_1d20df29](https://github.com/user-attachments/assets/5dbd6de9-e297-4ca8-a1d1-8254b5cae715)
-![image](https://github.com/user-attachments/assets/85585db2-c2c2-4d11-b143-cbe129e32ff8)
-
 ![image](https://github.com/user-attachments/assets/f96e82a7-9e6a-485c-a068-cce32e25b0a0)
 ![image](https://github.com/user-attachments/assets/30fbeb26-89f2-4bb2-8b9e-592786b59696)
 ![image](https://github.com/user-attachments/assets/e9fa3377-3a54-46e3-9b08-e0a3329271ed)
