@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 
 # File Share Application Deployment
 
